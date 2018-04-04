@@ -3,21 +3,30 @@ package br.ufpb.dcx.controllers;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.servlet.ModelAndView;
 
 import br.ufpb.dcx.models.Book;
+import br.ufpb.dcx.models.Usuario;
 import br.ufpb.dcx.repository.BookRepository;
+import br.ufpb.dcx.repository.UsuarioRepository;
 
 @Controller
 @RequestMapping("/books")
+@SessionAttributes("roles")
 public class BookController {
 	
 	@Autowired
 	private BookRepository bookRepo;
+	
+	@Autowired
+	private UsuarioRepository usuarioRepo;
 	
 	@RequestMapping(method = RequestMethod.GET, value = "/create/")
 	public ModelAndView formBook(Book book) {
@@ -27,16 +36,19 @@ public class BookController {
 	
 	@RequestMapping(method = RequestMethod.POST, value = "/create/")
 	public String createBook(Book book) {
-		System.out.println(book.getTitle());
 		bookRepo.save(book);
 		return ("redirect:/books/");
 	}
 	
+	//@Secured("ROLE_ADMIN")
+	//@PreAuthorize("isAuthenticated()")
 	@RequestMapping(method = RequestMethod.GET, value = "/")
 	public ModelAndView getAllBooks() {
 		List<Book> books = bookRepo.findAll();
+		Usuario usuario = getUserLogged();
 		ModelAndView md = new ModelAndView("book/books");
 		md.addObject("books", books);
+		md.addObject("usuario", usuario);
 		return md;
 	}
 	
@@ -68,4 +80,10 @@ public class BookController {
 		md.addObject("book", book);
 		return md;
 	}
+	
+	private Usuario getUserLogged(){
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Usuario usuario = usuarioRepo.findByUsername(userDetails.getUsername());
+        return usuario;
+    }
 }
